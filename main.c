@@ -69,7 +69,7 @@ volatile uint8_t count = 0; //0 = upp, 1 = down
 
 #define HOMESCREEN 0
 #define PAUSESTART 0
-#define ZEIT 0
+#define ZEIT 1
 #define START 1
 #define RESET 1
 #define MENUE 2
@@ -252,6 +252,8 @@ while(1){
 		
 		
 		case STOPUHR:	ClearDisplay();
+						count = 0;
+						statestopp = PAUSESTART;
 						sek = 0; minu = 0; std = 0;
 						while(state != HOMESCREEN){
 							switch(statestop){
@@ -350,9 +352,91 @@ while(1){
 						
 						
 		case TIMER: 		ClearDisplay();
-							while(1){
-								switch(statetimer){
+							count = 1;
+							uint8_t stopp = 0;
+							sek = 0; minu = 0; std = 0;
+							while(state != HOMESCREEN){
+								switch(statestop){
+									case 0:
+											if(clear == 1){
+											ClearDisplay();
+											clear = 0;
+											}
+											if(std == 0){
+												if(minu == 0){
+													if(sek == 0){
+														statestopp = PAUSESTART;
+													}
+												}
+											}
+											sprintf(buffer,"%d:%d:%d", std, minu, sek);
+											MoveTo(10,100);
+											fore=WHITE;
+											PlotString(buffer);
+											break;
 									
+									case 1:sek = 0; minu = 0; std = 0;
+									ClearDisplay();
+											while(stopp == 0){
+												statestop = 3;
+												sprintf(buffer,"%d:%d:%d", std, minu, sek);
+											MoveTo(10,100);
+											fore=WHITE;
+											PlotString(buffer);
+											
+											fore = GREEN;
+											MoveTo(40, 50);
+											PlotText(PSTR("STUNDE+"));
+											MoveTo(40, 30);
+											PlotText(PSTR("MINUTE+"));
+											MoveTo(40, 10);
+											PlotText(PSTR("ZURÜCK"));
+											
+											static uint8_t tastenegRT = 0;
+												BALLSTOP();
+												if(TASTE_BLAU){
+												BALLNEGSTOP();
+												selectorpos++;
+												
+												SELECTORSTOP();
+												
+												_delay_ms(200);
+											}
+											if(TASTE_GELB){
+												BALLNEGSTOP();
+												selectorpos--;
+												
+												SELECTORSTOP();
+											
+												
+												_delay_ms(200);
+											}
+												if(TASTE_ROT > tastenegRT){
+													tastenegRT = 1;
+													statestop = SELECTSTOP();
+												}//end tasterot
+												if(TASTE_ROT < tastenegRT){
+													tastenegRT = 0;
+												}//end reset tasterot
+												
+											switch(statestop){
+												case 0:
+															std++;
+															break;
+												case 1:	
+															minu++;
+															break;
+												case MENUE:
+															stopp = 1;
+															statestop = 0;
+															break;
+											}
+											
+											}//end while zahl
+											statestop = 0;
+											_delay_ms(900);
+											ClearDisplay();
+											break;
 									
 									case MENUE:	
 											state = HOMESCREEN;
