@@ -65,9 +65,12 @@ volatile uint8_t minu = 0;
 volatile uint8_t std = 0;
 volatile uint8_t clear = 0;
 volatile uint8_t statestopp = 0;
+volatile uint8_t count = 0; //0 = upp, 1 = down
 
 #define HOMESCREEN 0
 #define PAUSESTART 0
+#define ZEIT 0
+#define START 1
 #define RESET 1
 #define MENUE 2
 #define STOPUHR 1
@@ -92,19 +95,36 @@ ISR(TIMER0_OVF_vect)   //overflow Interrupt Service Routine von Timer0
 		if(ms == 10){
 			ms = 0;
 			if(statestopp != PAUSESTART){
+				if(count == 0){
 				sek++;
+			}
+			else{sek--;}
 			}//end pause
 		}
-		if(sek == 60){
-			sek = 0;
+		if(count == 0){
+			if(sek == 60){
+				sek = 0;
+				clear = 1;
+				minu++;
+			}
+			if(minu == 60){
+				minu = 0;
+				clear = 1;
+				std++;
+			}
+		}//end countup
+		else{
+			if(sek > 60){
+			sek = 60;
 			clear = 1;
-			minu++;
-		}
-		if(minu == 60){
-			minu = 0;
-			clear = 1;
-			std++;
-		}
+			minu--;	
+			}
+			if(minu > 60){
+				minu = 60;
+				clear = 1;
+				std--;
+			}
+		}//end countdown
 		
 		
 		
@@ -122,16 +142,16 @@ uint8_t SELECTSTOP (void);
 
 volatile uint8_t selector[2] = {86, 46};
 volatile uint8_t selectorstop[3] = {58, 38, 18};
-volatile uint8_t selectorpos = 1;// 0= stoppuhr, 1=timer
+volatile uint8_t selectorpos = 0;// 0= stoppuhr, 1=timer
 volatile uint8_t nselectorpos = 0;//ball reset
-
+volatile uint8_t state = 0;
+volatile uint8_t statetimer = 0;
 
 int main(void)
 {
 	//----------------------------------------------------------------------------------------------------------------------
 	
 	char buffer [20];
-	uint8_t state = 0;
 	uint8_t statestop = 0;
 
 	
@@ -185,6 +205,7 @@ while(1){
 	switch(state){
 		case HOMESCREEN:	scale = 2;
 							fore = CYAN;
+							ClearDisplay();
 							MoveTo(40, 80);
 							PlotText(PSTR("Stoppuhr"));
 							MoveTo(40, 40);
@@ -222,8 +243,17 @@ while(1){
 									tastenegR = 0;
 								}//end reset tasterot
 							}//End while homescreen
+							break;
+		
+		
+		
+		
+		
+		
+		
 		case STOPUHR:	ClearDisplay();
-						while(1){
+						sek = 0; minu = 0; std = 0;
+						while(state != HOMESCREEN){
 							switch(statestop){
 								case PAUSESTART:
 											if(clear == 1){
@@ -236,31 +266,42 @@ while(1){
 											PlotString(buffer);
 											break;
 											
-								case ZAEL:	if(clear == 1){
-											ClearDisplay();
-											clear = 0;
-											}
-											sprintf(buffer,"%d:%d:%d", std, minu, sek);
+								case RESET:	sek = 0; minu = 0; std = 0;
+											sprintf(buffer,"%d:%d:%d ", std, minu, sek);
 											MoveTo(10,100);
 											fore=WHITE;
 											PlotString(buffer);
-											
+											statestopp = PAUSESTART;
 											break;
-							}//end switch state timer
-							fore = GREEN;
-							MoveTo(40, 50);
-							if(statestopp == PAUSESTART){
-								PlotText(PSTR("START"));
-							}
-							else{
-								PlotText(PSTR("PAUSE"));
-								fore = WHITE;
-								MoveTo(90, 101);
-								FillRect(4, 16);
-								MoveTo(98, 101);
-								FillRect(4, 16);
+											
+								case MENUE:	
+											state = HOMESCREEN;
+											statestop = PAUSESTART;
+											break;
+								}//end switch state timer
 								fore = GREEN;
-							}//menue pause/start
+								MoveTo(40, 50);
+								if(statestopp == PAUSESTART){
+									PlotText(PSTR("START"));
+									fore = WHITE;
+									MoveTo(90, 101);
+									FillRect(4, 16);
+									MoveTo(98, 101);
+									FillRect(4, 16);
+									fore = GREEN;
+								}
+								else{
+									PlotText(PSTR("PAUSE"));
+									fore = BLACK;
+									MoveTo(90, 101);
+									FillRect(4, 16);
+									MoveTo(98, 101);
+									FillRect(4, 16);
+									fore = GREEN;
+								}//menue pause/start
+							
+							
+							
 							MoveTo(40, 30);
 							PlotText(PSTR("RESET"));
 							MoveTo(40, 10);
@@ -302,10 +343,87 @@ while(1){
 								if(TASTE_ROT < tastenegRT){
 									tastenegRT = 0;
 								}//end reset tasterot
+							}//end while Stopuhr
+							ClearDisplay();
+							break;
+						
+						
+						
+		case TIMER: 		ClearDisplay();
+							while(1){
+								switch(statetimer){
+									
+									
+									case MENUE:	
+											state = HOMESCREEN;
+											statestop = PAUSESTART;
+											break;
+								}//end switch timer
+							fore = GREEN;
+								MoveTo(40, 50);
+								if(statestopp == PAUSESTART){
+									PlotText(PSTR("START"));
+									fore = WHITE;
+									MoveTo(90, 101);
+									FillRect(4, 16);
+									MoveTo(98, 101);
+									FillRect(4, 16);
+									fore = GREEN;
+								}
+								else{
+									PlotText(PSTR("PAUSE"));
+									fore = BLACK;
+									MoveTo(90, 101);
+									FillRect(4, 16);
+									MoveTo(98, 101);
+									FillRect(4, 16);
+									fore = GREEN;
+								}//menue pause/start
 							
 							
-						}//end while Stopuhr
-			
+							
+							MoveTo(40, 30);
+							PlotText(PSTR("ZEIT"));
+							MoveTo(40, 10);
+							PlotText(PSTR("MENUE"));
+							static uint8_t tastenegBT = 0;
+								static uint8_t tastenegGT = 0;
+								static uint8_t tastenegRT = 0;
+								BALLSTOP();
+								if(TASTE_BLAU > tastenegBT){
+									BALLNEGSTOP();
+									selectorpos++;
+									tastenegBT = 1;//schalter einfach betätigen
+									SELECTORSTOP();
+								}//end tasteblau
+								if(TASTE_BLAU < tastenegBT){
+									tastenegBT = 0;
+									_delay_ms(200);
+								}//end reset tastblau
+								if(TASTE_GELB > tastenegGT){
+									BALLNEGSTOP();
+									selectorpos--;
+									tastenegGT = 1;//schalter einfach betätigen
+									SELECTORSTOP();
+								}//end tastegelb
+								if(TASTE_GELB < tastenegGT){
+									tastenegGT = 0;
+									_delay_ms(200);
+								}//end reset tastegelb
+								if(TASTE_ROT > tastenegRT){
+									tastenegRT = 1;
+									statestop = SELECTSTOP();
+									if(statestop == 0){
+										statestopp++;
+										if(statestopp == 2){
+											statestopp =0;
+										}
+									}//end pause unpause
+								}//end tasterot
+								if(TASTE_ROT < tastenegRT){
+									tastenegRT = 0;
+								}//end reset tasterot;
+							}//end while timer
 		
 	}//end switch state
 	
@@ -434,12 +552,12 @@ void BALLNEGSTOP(void){
 }
 
 uint8_t SELECT (void){
-	uint8_t state = 0;
+	uint8_t stat = 0;
 	switch(selectorpos){
-		case 0:state = STOPUHR; break;
-		case 1:state = TIMER; break;
+		case 0:stat = STOPUHR; break;
+		case 1:stat = TIMER; break;
 	}//end switch select
-	return(state);
+	return(stat);
 }//end SELECT
 
 uint8_t SELECTSTOP (void){
